@@ -1,0 +1,631 @@
+#include <Wire.h>
+#include <Adafruit_GFX.h>
+#include <Adafruit_SSD1306.h>
+
+
+
+
+#define SCREEN_WIDTH 128
+#define SCREEN_HEIGHT 64
+
+
+
+
+#define MAX_CLOUDS 7
+#define START_CLOUDS 2
+
+
+
+
+Adafruit_SSD1306 display(128,64,&Wire,-1);
+
+
+
+
+int buttonPin1 = 2;
+int buttonPin2 = 3;
+int buttonPin3 = 4;
+
+
+int shipX = 64;
+
+
+
+
+int cloudX[MAX_CLOUDS];
+int cloudY[MAX_CLOUDS];
+
+
+
+
+int activeClouds = START_CLOUDS;
+int cloudSpeed = 4;
+
+
+
+
+int score = 0;
+
+
+
+
+bool isPaused = false;
+bool isGameOver = false;
+bool hasStarted = false;
+bool lastButtonState = HIGH;
+
+
+void setup() {
+
+
+
+
+  pinMode(buttonPin1, INPUT_PULLUP);
+  pinMode(buttonPin2, INPUT_PULLUP);
+  pinMode(buttonPin3, INPUT_PULLUP);
+
+
+
+
+  display.begin(SSD1306_SWITCHCAPVCC, 0x3C);
+
+
+
+
+  display.clearDisplay();
+  display.display();
+
+
+
+
+  randomSeed(analogRead(0));
+
+
+
+
+  for(int i = 0; i < MAX_CLOUDS; i++){
+    cloudX[i] = random(5,123);
+    cloudY[i] = random(-64, 0);
+  }
+}
+
+
+
+
+void loop() {
+
+
+
+
+  display.clearDisplay();
+
+
+  bool currentButtonState = digitalRead(buttonPin1);
+
+
+
+
+  if(currentButtonState == LOW && lastButtonState == HIGH){
+
+
+
+
+    if(!hasStarted){
+      hasStarted = true;
+    }
+    else if(isGameOver){
+      restartGame();
+    }
+    else{
+      isPaused = !isPaused;
+    }
+
+
+
+
+  }
+
+
+
+
+  lastButtonState = currentButtonState;
+
+
+
+
+  if(!isPaused && !isGameOver){
+
+
+
+
+    if(digitalRead(buttonPin2)==LOW){
+      shipX -= 6;
+    }
+
+
+
+
+    if(digitalRead(buttonPin3)==LOW){
+      shipX += 6;
+    }
+
+
+
+
+    if(shipX < 5) shipX = 5;
+    if(shipX > 123) shipX = 123;
+
+
+
+
+    moveClouds();
+    checkCollision();
+    updateDifficulty();
+  }
+
+
+
+
+ 
+  drawShip();
+  drawClouds();
+  drawScore();
+
+
+
+
+ 
+  if(isPaused && !isGameOver){
+    display.setTextSize(1);
+    display.setCursor(10,30);
+    display.print("HAND STUCK IN BAG");
+  }
+
+
+
+
+  if(isGameOver){
+    display.setTextSize(1);
+    display.setCursor(10,25);
+    display.print("CHEEZY PUFFS CRASH");
+    display.setCursor(30,40);
+    display.print("Press Pause");
+  }
+
+
+
+
+  display.display();
+  delay(30);
+}
+
+
+
+
+void drawShip(){
+  display.fillCircle(shipX, 60, 4, WHITE);
+  display.fillRect(shipX - 4, 56, 9, 5, BLACK);
+}
+
+
+
+
+void moveClouds(){
+
+
+
+
+  for(int i = 0; i < activeClouds; i++){
+
+
+
+
+    cloudY[i] += cloudSpeed;
+
+
+
+
+    if(cloudY[i] > 64){
+      cloudY[i] = random(-20, 0);
+      cloudX[i] = random(5,123);
+      score++;
+    }
+
+
+
+
+  }
+}
+
+
+
+
+
+
+void drawClouds(){
+
+
+
+
+  for(int i = 0; i < activeClouds; i++){
+
+
+
+
+    display.fillCircle(cloudX[i], cloudY[i], 6, WHITE);
+    display.fillCircle(cloudX[i] - 5, cloudY[i], 5, WHITE);
+    display.fillCircle(cloudX[i] + 5, cloudY[i], 5, WHITE);
+
+
+
+
+  }
+}
+
+
+void checkCollision(){
+
+
+
+
+  for(int i = 0; i < activeClouds; i++){
+
+
+
+
+    if(abs(shipX - cloudX[i]) < 10 && abs(60 - cloudY[i]) < 10){
+      isGameOver = true;
+    }
+
+
+
+
+  }
+}
+
+
+
+
+
+
+void updateDifficulty(){
+
+
+
+
+  int targetClouds = START_CLOUDS + (score / 5);
+
+
+
+
+  if(targetClouds > MAX_CLOUDS){
+    targetClouds = MAX_CLOUDS;
+  }
+
+
+
+
+  activeClouds = targetClouds;
+}
+
+
+
+
+
+
+void drawScore(){
+
+
+
+
+  display.setTextSize(1);
+  display.setTextColor(WHITE);
+  display.setCursor(0,0);
+
+
+
+
+  display.print("cheez: ");
+  display.print(score);
+}
+
+
+void restartGame(){
+
+
+
+
+  shipX = 64;
+
+
+
+
+  for(int i = 0; i < MAX_CLOUDS; i++){
+    cloudX[i] = random(5,123);
+    cloudY[i] = random(-64, 0);
+  }
+
+
+
+
+  score = 0;
+  activeClouds = START_CLOUDS;
+
+
+
+
+  isPaused = false;
+  isGameOver = false;
+}
+
+
+
+
+#include <Wire.h>
+#include <Adafruit_GFX.h>
+#include <Adafruit_SSD1306.h>
+
+
+#define SCREEN_WIDTH 128
+#define SCREEN_HEIGHT 64
+
+
+#define MAX_CLOUDS 7
+#define START_CLOUDS 2
+
+
+Adafruit_SSD1306 display(128,64,&Wire,-1);
+
+
+// INPUT PINS 
+int buttonPin1 = 2;
+int buttonPin2 = 3;
+int buttonPin3 = 4;
+
+
+// GAME VARIABLES 
+int shipX = 64;
+
+
+int cloudX[MAX_CLOUDS];
+int cloudY[MAX_CLOUDS];
+
+
+int activeClouds = START_CLOUDS;
+int cloudSpeed = 4;
+
+
+int score = 0;
+
+
+// GAME STATE 
+bool isPaused = false;
+bool isGameOver = false;
+bool hasStarted = false;
+bool lastButtonState = HIGH;
+
+
+// SETUP 
+void setup() {
+
+
+  pinMode(buttonPin1, INPUT_PULLUP);
+  pinMode(buttonPin2, INPUT_PULLUP);
+  pinMode(buttonPin3, INPUT_PULLUP);
+
+
+  display.begin(SSD1306_SWITCHCAPVCC, 0x3C);
+
+
+  display.clearDisplay();
+  display.display();
+
+
+  randomSeed(analogRead(0));
+
+
+  for(int i = 0; i < MAX_CLOUDS; i++){
+    cloudX[i] = random(5,123);
+    cloudY[i] = random(-64, 0);
+  }
+}
+
+
+// MAIN LOOP 
+void loop() {
+
+
+  display.clearDisplay();
+
+
+  // BUTTON 
+  bool currentButtonState = digitalRead(buttonPin1);
+
+
+  if(currentButtonState == LOW && lastButtonState == HIGH){
+
+
+    if(!hasStarted){
+      hasStarted = true;
+    }
+    else if(isGameOver){
+      restartGame();
+    }
+    else{
+      isPaused = !isPaused;
+    }
+
+
+  }
+
+
+  lastButtonState = currentButtonState;
+
+
+
+
+  // GAME RUNNING 
+  if(!isPaused && !isGameOver){
+
+
+    if(digitalRead(buttonPin2)==LOW){
+      shipX -= 6;
+    }
+
+
+    if(digitalRead(buttonPin3)==LOW){
+      shipX += 6;
+    }
+
+
+    if(shipX < 5) shipX = 5;
+    if(shipX > 123) shipX = 123;
+
+
+    moveClouds();
+    checkCollision();
+    updateDifficulty();
+  }
+
+
+  // DRAW 
+  drawShip();
+  drawClouds();
+  drawScore();
+
+
+  // -------- UI --------
+  if(isPaused && !isGameOver){
+    display.setTextSize(1);
+    display.setCursor(10,30);
+    display.print("HAND STUCK IN BAG");
+  }
+
+
+  if(isGameOver){
+    display.setTextSize(1);
+    display.setCursor(10,25);
+    display.print("CHEEZY PUFFS CRASH");
+    display.setCursor(30,40);
+    display.print("Press Pause");
+  }
+
+
+  display.display();
+  delay(30);
+}
+
+
+// DRAW SHIP 
+void drawShip(){
+  display.fillCircle(shipX, 60, 4, WHITE);
+  display.fillRect(shipX - 4, 56, 9, 5, BLACK);
+}
+
+
+// MOVE CLOUDS 
+void moveClouds(){
+
+
+  for(int i = 0; i < activeClouds; i++){
+
+
+    cloudY[i] += cloudSpeed;
+
+
+    if(cloudY[i] > 64){
+      cloudY[i] = random(-20, 0);
+      cloudX[i] = random(5,123);
+      score++;
+    }
+
+
+  }
+}
+
+
+// DRAW CLOUDS 
+void drawClouds(){
+
+
+  for(int i = 0; i < activeClouds; i++){
+
+
+    display.fillCircle(cloudX[i], cloudY[i], 6, WHITE);
+    display.fillCircle(cloudX[i] - 5, cloudY[i], 5, WHITE);
+    display.fillCircle(cloudX[i] + 5, cloudY[i], 5, WHITE);
+
+
+  }
+}
+
+
+// COLLISION 
+void checkCollision(){
+
+
+  for(int i = 0; i < activeClouds; i++){
+
+
+    if(abs(shipX - cloudX[i]) < 10 && abs(60 - cloudY[i]) < 10){
+      isGameOver = true;
+    }
+
+
+  }
+}
+
+
+// DIFFICULTY 
+void updateDifficulty(){
+
+
+  int targetClouds = START_CLOUDS + (score / 5);
+
+
+  if(targetClouds > MAX_CLOUDS){
+    targetClouds = MAX_CLOUDS;
+  }
+
+
+  activeClouds = targetClouds;
+}
+
+
+// DRAW SCORE
+void drawScore(){
+
+
+  display.setTextSize(1);
+  display.setTextColor(WHITE);
+  display.setCursor(0,0);
+
+
+  display.print("cheez: ");
+  display.print(score);
+}
+
+
+// RESTART 
+void restartGame(){
+
+
+  shipX = 64;
+
+
+  for(int i = 0; i < MAX_CLOUDS; i++){
+    cloudX[i] = random(5,123);
+    cloudY[i] = random(-64, 0);
+  }
+
+
+  score = 0;
+  activeClouds = START_CLOUDS;
+
+
+  isPaused = false;
+  isGameOver = false;
+}
+
+
+// https://scratch.mit.edu/projects/758921995
